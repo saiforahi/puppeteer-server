@@ -1,21 +1,21 @@
-const express = require("express");
-const puppeteer = require('puppeteer');
-const bodyParser = require("body-parser");
-const cors = require("cors");
-var multer = require('multer')
+import express, { static, json, urlencoded } from "express";
+import { launch } from 'puppeteer';
+import cors from "cors";
+import multer from 'multer';
+import PCR  from 'puppeteer-chromium-resolver'
 var forms = multer();
 const path = __dirname + '/app/views/';
 const app = express();
-app.use(express.static(path));
+app.use(static(path));
 
 var corsOptions = {
   origin: "http://localhost:3000"
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(json());
 app.use(forms.array());
-app.use(express.urlencoded({ extended: true }));
+app.use(urlencoded({ extended: true }));
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;
@@ -44,7 +44,7 @@ app.get('/', function (req,res) {
 // })
 app.post('/product', function (req, res) {
   // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
-  puppeteer.launch().then(async function (browser) {
+  launch().then(async function (browser) {
     const page = await browser.newPage();
     console.log(req.body.url)
     await page.goto(req.body.url, {
