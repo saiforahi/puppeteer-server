@@ -44,7 +44,7 @@ app.get('/', function (req,res) {
 // })
 app.post('/product', function (req, res) {
   // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
-  puppeteer.launch({headless: true, executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"}).then(async function (browser) {
+  puppeteer.launch().then(async function (browser) {
     const page = await browser.newPage();
     console.log(req.body.url)
     await page.goto(req.body.url, {
