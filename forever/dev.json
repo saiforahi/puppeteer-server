@@ -1,0 +1,10 @@
+{
+    "uid": "app",
+    "append": true,
+    "watch": true,
+    "script": "server.js",
+    "sourceDir": "/home/rockbenon/app",
+    "logFile": "/home/rockbenon/logs/forever.log",
+    "outFile": "/home/rockbenon/logs/out.log",
+    "errFile": "/home/rockbenon/logs/error.log"
+}

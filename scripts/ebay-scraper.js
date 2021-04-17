@@ -159,26 +159,27 @@ function get_seller_info(){
     }
     return seller;
 }
-function get_price(text){
+function get_price(text){ 
     let textContent=new String(text);
     let price=textContent.split(" ");
     price[1]=price[1].replace('$'," ").trim();
     let currency=price[0]+" $";
     return {price:price[1],currency:currency};
 }
-function get_item_id(){
+function get_item_id(){ //done
     let item_id="";
     let element=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a")
     item_id=element.getAttribute('data-itemid');
     return item_id;
 }
-function set_data(){
+exports.set_data=function(){
     let titleElement=document.getElementById("itemTitle");
     let priceElement=document.getElementById("prcIsum");
     let mainImage = document.getElementById("icImg");
     data={market:"ebay",item_id:get_item_id(),url:location.href,seller:get_seller_info(),title:titleElement.textContent.replace("Details about  "," ").trim(),variants:get_variants(),current_price:parseInt(get_price(priceElement.textContent).price),currency:get_price(priceElement.textContent).currency, default_image:mainImage.src,images:get_images(),details:get_product_details(),description:get_description().description,specification:get_description().table,shipping_and_payment:get_shipping_and_payment_details()};
-    chrome.storage.local.set({product_details:data})
+    //chrome.storage.local.set({product_details:data})
     console.log("Captured JSON object: "+JSON.stringify(data));
+    return data
 }
 function get_shipping_and_payment_details(){
     let shipping={shipping_to:[],excludes:[]}
@@ -194,36 +195,5 @@ function get_shipping_and_payment_details(){
         })
     }
     return shipping;
-}
-function get_parameters(){
-    let url=new URL(window.location.href);
-    console.log(url.href.split('/'))
-    return url.href.split('/')
-}
-if(get_parameters().length>0){
-    chrome.storage.local.get(['lines'],function(result){
-        if(result.lines!==undefined){
-            if(result.lines.length>0 && result.lines[0].product_url===window.location.href){
-                chrome.runtime.sendMessage({message:'add_to_cart'})
-            }
-        }
-        else{
-            get_shipping_and_payment_details()
-            if(document.getElementById("itemTitle")){
-                console.log('cat 1 item')
-                set_data();
-            }
-            else if(document.getElementsByClassName('product-title')[0]){
-                console.log('cat 2 item')
-                let title=document.getElementsByClassName('product-title')[0].textContent;
-                let priceElement=document.getElementById("prcIsum");
-                let mainImage = document.getElementById("icImg");
-                let price=document.getElementsByClassName('display-price')[0].textContent.replace('$','').trim();
-                data={market:'ebay',item_id:get_item_id(),url:location.href,seller:get_seller_info(),title:title,variants:get_variants(),price:price,current_price:parseInt(get_price(priceElement.textContent).price),currency:get_price(priceElement.textContent).currency,default_image:mainImage.src,images:get_images_structure2(),details:get_product_details(),description:get_description(),specification:get_description().table,shipping_and_payment:get_shipping_and_payment_details()};
-                console.log("Captured JSON object: "+JSON.stringify(data));
-                //chrome.storage.local.set({product_details:data})
-            }
-        }
-    })
 }
 
