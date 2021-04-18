@@ -268,7 +268,7 @@ app.post('/product', function (req, res) {
     
         return JSON.stringify(images);
       }))
-      //await browser.close();
+      await browser.close();
       res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:images,details:details,description:description.description,specification:description.table,shipping_and_payment:shipping_and_payment})
       // Sending the Digimon names to Postman
       //res.sendFile("emdad.png");
