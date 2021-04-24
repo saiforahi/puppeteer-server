@@ -62,6 +62,8 @@ app.post('/product', function (req, res) {
         //       await read_more.click()
         //   }
         //await page.waitForTimeout
+        await page.waitForSelector("#vi_main_img_fs ul li")
+        await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
         const variant_that_has_images=JSON.parse(await page.evaluate(()=>{
             let name=""
             let elements=[]
@@ -79,15 +81,17 @@ app.post('/product', function (req, res) {
             Array.from(li_element).forEach(li=>{
                 if(!li.querySelector('button table.img tbody tr td div img').getAttribute('src').includes('p.ebaystatic.com')){
                     li.click()
-                    if(elements[0].querySelector('option[selected="selected"]')==null){
-                        variant_element['default']=document.getElementById("icImg").getAttribute('src')
-                    }
-                    else{
-                        if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
-                            variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
+                    if(elements.length>0){
+                        if(elements[0].querySelector('option[selected="selected"]')==null){
+                            variant_element['default']=document.getElementById("icImg").getAttribute('src')
                         }
                         else{
-                            variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
+                            if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
+                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
+                            }
+                            else{
+                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
+                            }
                         }
                     }
                     images.push(document.getElementById("icImg").getAttribute('src'))
@@ -99,7 +103,7 @@ app.post('/product', function (req, res) {
         }))
         //Array.from()
         //
-        // await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
+        //  await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
         await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
         const item_id=await page.evaluate(()=>{
             let item_id=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a").getAttribute('data-itemid')
@@ -220,7 +224,9 @@ app.post('/product', function (req, res) {
             }
             return JSON.stringify(shipping);
         }))
-        variants[variant_that_has_images.name]=variant_that_has_images.variant
+        if(variant_that_has_images.name.length>0){
+            variants[variant_that_has_images.name]=variant_that_has_images.variant
+        }
         await browser.close();
         //variants[variant_that_has_images.name]=variant_that_has_images.images
         res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
