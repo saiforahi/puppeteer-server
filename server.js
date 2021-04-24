@@ -17,7 +17,7 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(forms.array());
+//app.use(forms.array());
 app.use(express.urlencoded({ extended: true }));
 
 // set port, listen for requests
@@ -34,246 +34,200 @@ app.get('/', function (req,res) {
 app.post('/product', function (req, res) {
   // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
   try {
-    puppeteer.launch({headless: true,slowMo: 100}).then(async function (browser) {
-      const page = await browser.newPage();
-      console.log(req.body.url)
-      await page.goto(req.body.url, {
-        waitUntil: 'domcontentloaded',
-      });
-      //await page.pdf({ path: 'hn.pdf', format: 'a4' });
-      //await page.screenshot({ path: 'ss.png' });
-      // const digimonNames = await page.$('#itemTitle', function (tag) {
-      //   console.log(tag)
-      //   return tag.innerText
-      //   // Mapping each Digimon name to an array
-      //   // return tag.children.map(function (digimon) {
-      //   //   return digimon.innerText;
-      //   // });
-      // });
-      await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
-      await page.waitForSelector(".mbg-nw")
-      let item_id=await page.$eval("div.social-widget.vi-share-widget-tc div.sw a",el=>el.getAttribute('data-itemid'))
-      const seller= JSON.parse(await page.evaluate(()=>{
-        const data={};
-        if(document.getElementsByClassName('mbg-nw')!==null){
-          const spans=document.getElementsByClassName('mbg-nw');
-          Array.from(spans).forEach(span=>{
-              if(span.parentNode.parentNode.className==="mbg vi-VR-margBtm3" && span.parentNode.parentNode.parentNode.className==="bdg-90"){
-                data.name=span.innerText;
-                data.profile=span.parentNode.getAttribute('href');
-              }
-          })
-        }
-        return JSON.stringify(data);
-      }))
-      const title = JSON.parse(await page.evaluate(()=>{
-        return JSON.stringify(document.getElementById('itemTitle').innerText);
-      }))
-      const main_image = JSON.parse(await page.evaluate(()=>{
-        return JSON.stringify(document.getElementById('icImg').getAttribute('src'));
-      }))
-      const current_price=JSON.parse(await page.evaluate(()=>{
-        let textContent=new String(document.getElementById("prcIsum").textContent);
-        let price=textContent.split(" ");
-        price[1]=price[1].replace('$'," ").trim();
-        let currency=price[0]+" $";
-        return JSON.stringify({price:price[1],currency:currency})
-      }))
-      const variants=JSON.parse(await page.evaluate(()=>{
-        let variants={};
-        if(document.getElementsByClassName('nonActPanel ').length===1){
-            if(document.getElementById('msku-sel-1')!==null){
-                let options=[];
-                document.getElementById('msku-sel-1').childNodes.forEach(child=>{
-                    if(child.innerText!=="- Select -"){
-                        options.push(child.innerText)
+    puppeteer.launch({
+        headless: true,
+        timeout: 0,
+        ignoreHTTPSErrors: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process']
+    }).then(async function (browser) {
+        const page = await browser.newPage();
+        console.log(req.body.url)
+        await page.goto(req.body.url, { waitUntil: 'load', timeout: 0 });
+        page.setDefaultNavigationTimeout(0);
+        await page.setViewport({ width: 1366, height: 700 });
+        await page.waitForTimeout(2000);
+        //await page.pdf({ path: 'hn.pdf', format: 'a4' });
+        //await page.screenshot({ path: 'ss.png' });
+        // const digimonNames = await page.$('#itemTitle', function (tag) {
+        //   console.log(tag)
+        //   return tag.innerText
+        //   // Mapping each Digimon name to an array
+        //   // return tag.children.map(function (digimon) {
+        //   //   return digimon.innerText;
+        //   // });
+        // });
+        //   const [read_more]=await page.$eval('#readFull a')
+        //   if(read_more){
+        //       await read_more.click()
+        //   }
+        //await page.waitForTimeout
+        const variant_that_has_images=JSON.parse(await page.evaluate(()=>{
+            let name=""
+            let elements=[]
+            let variant_element={}
+            let images=[]
+            if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
+                Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
+                    if(element.getAttribute('name')==='Color' || element.getAttribute('name')==='COLOUR'|| element.getAttribute('name')==='Pattern'){
+                        elements.push(element)
+                        name=element.getAttribute('name')
                     }
                 })
-                variants[document.getElementById('msku-sel-1').getAttribute('name')]=options;
             }
-            if(document.getElementById('msku-sel-2')!==null){
-                let options=[];
-                let images=[]
-                if(document.querySelector('#vi_main_img_fs')!==null){
-                  let tableDatas=document.querySelector('#vi_main_img_fs');
-                  if(tableDatas.hasChildNodes()){
-                      if(tableDatas.children[0].nodeName==="UL" && tableDatas.children[0].getAttribute('class')==='lst icon'){
-                          tableDatas.children[0].childNodes.forEach((td)=>{
-                              if(td.hasChildNodes){
-                                  td.childNodes.forEach((item)=>{
-                                      if(item.hasChildNodes){
-                                          item.childNodes.forEach((item)=>{ //table
-                                              if(item.hasChildNodes){
-                                                  item.childNodes.forEach((item)=>{ //tbody
-                                                      if(item.hasChildNodes){
-                                                          item.childNodes.forEach((item)=>{
-                                                              if(item.hasChildNodes){
-                                                                  item.childNodes.forEach(item=>{ //td
-                                                                      if(item.hasChildNodes){
-                                                                          item.childNodes.forEach(item=>{
-                                                                              if(item.hasChildNodes){
-                                                                                  item.childNodes.forEach(img=>{
-                                                                                      if(img.src!==undefined){
-                                                                                          images.push(img.src);
-                                                                                      }
-                                                                                  })
-                                                                              }
-                                                                          })
-                                                                      }
-                                                                  })
-                                                              }
-                                                          })
-                                                      }
-                                                  })
-                                              }
-                                          })
-                                      }
-                                  })
-                              }
-                          })
-                      }
-                  }
-                }
-                console.log('images',images)
-                document.getElementById('msku-sel-2').childNodes.forEach(child=>{
-                    if(child.innerText!=="- Select -"){
-                        options.push(child.innerText)
+            let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
+            Array.from(li_element).forEach(li=>{
+                if(!li.querySelector('button table.img tbody tr td div img').getAttribute('src').includes('p.ebaystatic.com')){
+                    li.click()
+                    if(elements[0].querySelector('option[selected="selected"]')==null){
+                        variant_element['default']=document.getElementById("icImg").getAttribute('src')
                     }
-                })
-                let new_options_array=new Array()
-                for(let index=0;index<options.length;index++){
-                    let variant={color:options[index],image:images[index+1]}
-                    variant.image=images[index+1]
-                    new_options_array.push(variant)
-                }
-                variants[document.getElementById('msku-sel-2').getAttribute('name')]=new_options_array;
-            }
-            if(document.getElementById('msku-sel-3')!==null){
-                let options=[];
-                document.getElementById('msku-sel-3').childNodes.forEach(child=>{
-                    if(child.innerText!=="- Select -"){
-                        options.push(child.innerText)
+                    else{
+                        if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
+                            variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
+                        }
+                        else{
+                            variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
+                        }
                     }
-                })
-                variants[document.getElementById('msku-sel-3').getAttribute('name')]=options;
-            }
-            if(document.getElementById('msku-sel-4')!==null){
-                let options=[];
-                document.getElementById('msku-sel-4').childNodes.forEach(child=>{
-                    if(child.innerText!=="- Select -"){
-                        options.push(child.innerText)
-                    }
-                })
-                variants[document.getElementById('msku-sel-4').getAttribute('name')]=options;
-            }
-            //console.log(variants);
-            return JSON.stringify(variants);
-        }
-        return JSON.stringify(variants);
-      }))
-      const details=JSON.parse(await page.evaluate(()=>{
-        let details={};
-        let name_cells=document.getElementsByClassName('s-name');
-        let value_cells=document.getElementsByClassName('s-value');
-        for(let index=0;index<name_cells.length;index++){
-            details[name_cells[index].textContent]=value_cells[index].textContent;
-        }
-        return JSON.stringify(details);
-      }))
-      const description=JSON.parse(await page.evaluate(()=>{
-        let description={};
-        let section;
-        if(document.getElementsByClassName('prodDetailSec')[0]!==undefined){
-            section=document.getElementsByClassName('prodDetailSec')[0];
-        }
-        else{
-            section=document.getElementsByClassName('section')[0]
-        }
-        let table;
-        section.childNodes.forEach((child)=>{
-            if(child.nodeName==="TABLE"){
-                table=child;
-            }
-        })
-        let rows=table.rows;
-        Array.from(rows).forEach((row)=>{
-            if(row.cells.length>0){
-                let span1=document.getElementsByClassName("product-details-title")[0];
-                let span2=document.getElementsByClassName("product-details-title")[1];
-                let span3=document.getElementsByClassName("product-details-title")[2];
-                if(row.cells[0].innerText!==`<br class="br">` && !row.cells[0].contains(span1)&& !row.cells[0].contains(span2)&& !row.cells[0].contains(span3)){
-                    description[row.cells[0].innerText]=row.cells[1].innerText;
-                }
-            }
-        })
-        return JSON.stringify({description:description,table:table.outerHTML});
-      }))
-      const shipping_and_payment=JSON.parse(await page.evaluate(()=>{
-        let shipping={shipping_to:[],excludes:[]}
-        if(document.getElementById('sh-gsp-wrap')!==null){
-            console.log('shipping and payment details div found')
-            document.getElementById('sh-gsp-wrap').childNodes.forEach(child=>{
-                if(new String(child.innerText).includes('Shipping') && child.className==='sh-sLoc'){
-                    shipping.shipping_to=new String(child.innerText).replace('Shipping to:','').trim().split(',')
-                }
-                else if(child.className==='sh-sLoc' && new String(child.innerText).includes('Excludes')){
-                    shipping.shipping_to=new String(child.innerText).replace('Excludes:','').trim().split(',')
+                    images.push(document.getElementById("icImg").getAttribute('src'))
+                    // console.log(document.getElementById("icImg").getAttribute('src'))
+                    // console.log(variant_element.querySelector('option[selected="selected"]'))
                 }
             })
-        }
-        return JSON.stringify(shipping);
-      }))
-      const images=JSON.parse(await page.evaluate(()=>{
-        let images=[];
-        if(document.querySelector('#vi_main_img_fs')!==null){
-            let tableDatas=document.querySelector('#vi_main_img_fs');
-            if(tableDatas.hasChildNodes()){
-                if(tableDatas.children[0].nodeName==="UL" && tableDatas.children[0].getAttribute('class')==='lst icon'){
-                    tableDatas.children[0].childNodes.forEach((td)=>{
-                        if(td.hasChildNodes){
-                            td.childNodes.forEach((item)=>{
-                                if(item.hasChildNodes){
-                                    item.childNodes.forEach((item)=>{ //table
-                                        if(item.hasChildNodes){
-                                            item.childNodes.forEach((item)=>{ //tbody
-                                                if(item.hasChildNodes){
-                                                    item.childNodes.forEach((item)=>{
-                                                        if(item.hasChildNodes){
-                                                            item.childNodes.forEach(item=>{ //td
-                                                                if(item.hasChildNodes){
-                                                                    item.childNodes.forEach(item=>{
-                                                                        if(item.hasChildNodes){
-                                                                            item.childNodes.forEach(img=>{
-                                                                                if(img.src!==undefined){
-                                                                                    images.push(img.src);
-                                                                                }
-                                                                            })
-                                                                        }
-                                                                    })
-                                                                }
-                                                            })
-                                                        }
-                                                    })
-                                                }
-                                            })
-                                        }
-                                    })
-                                }
-                            })
-                        }
-                    })
+            return JSON.stringify({variant:variant_element,images:images,name:name})
+        }))
+        //Array.from()
+        //
+        // await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
+        await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
+        const item_id=await page.evaluate(()=>{
+            let item_id=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a").getAttribute('data-itemid')
+            return item_id
+        })
+        //await page.waitForSelector(".mbg-nw")
+        const seller= JSON.parse(await page.evaluate(()=>{
+            const data={};
+            if(document.getElementsByClassName('mbg-nw')!==null){
+            const spans=document.getElementsByClassName('mbg-nw');
+            Array.from(spans).forEach(span=>{
+                if(span.parentNode.parentNode.className==="mbg vi-VR-margBtm3" && span.parentNode.parentNode.parentNode.className==="bdg-90"){
+                    data.name=span.innerText;
+                    data.profile=span.parentNode.getAttribute('href');
                 }
+            })
             }
-        }
-    
-        return JSON.stringify(images);
-      }))
-      await browser.close();
-      res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:images,details:details,description:description.description,specification:description.table,shipping_and_payment:shipping_and_payment})
-      // Sending the Digimon names to Postman
-      //res.sendFile("emdad.png");
-    });
-  } catch (error) {
+            return JSON.stringify(data);
+        }))
+        const title = JSON.parse(await page.evaluate(()=>{
+            return JSON.stringify(document.getElementById('itemTitle').innerText);
+        }))
+        const main_image = JSON.parse(await page.evaluate(()=>{
+            return JSON.stringify(document.getElementById('icImg').getAttribute('src'));
+        }))
+        const current_price=JSON.parse(await page.evaluate(()=>{
+            let textContent
+            if(document.getElementById('mm-saleDscPrc')){
+                textContent=document.getElementById('mm-saleDscPrc').textContent
+            }
+            else if(document.getElementById("prcIsum")){
+                textContent=document.getElementById("prcIsum").textContent;
+            }
+            let price=textContent.split(" ");
+            price[1]=price[1].replace('$'," ").trim();
+            let currency=price[0]+" $";
+            return JSON.stringify({price:price[1],currency:currency})
+        }))
+        const variants=JSON.parse(await page.evaluate(()=>{
+            let variants={};
+            let variant_elements=document.querySelectorAll("select[id*='msku-sel']")
+            Array.from(variant_elements).forEach(element=>{
+                let options=[];
+                element.childNodes.forEach(child=>{
+                    if(child.innerText!="- Select -" && !child.innerText.includes('[out of stock]')){
+                        options.push(child.innerText)
+                        console.log(child)
+                    }
+                })
+                variants[element.getAttribute('name')]=options;
+                // if(element.getAttribute('name')==="Color" || element.getAttribute('name')==="COLOUR" || element.getAttribute('name')==="Pattern"){
+                    
+                //     variants[element.getAttribute('name')]=variant_that_has_images;
+                // }
+                // else{
+                //     variants[element.getAttribute('name')]=options;
+                // }
+            })
+            return JSON.stringify(variants);
+        }))
+      
+        const details=JSON.parse(await page.evaluate(()=>{
+            let details={};
+            let name_cells=document.getElementsByClassName('s-name');
+            let value_cells=document.getElementsByClassName('s-value');
+            for(let index=0;index<name_cells.length;index++){
+                details[name_cells[index].textContent]=value_cells[index].textContent;
+            }
+            return JSON.stringify(details);
+        }))
+        const description=JSON.parse(await page.evaluate(()=>{
+            let description={};
+            let section;
+            if(document.getElementsByClassName('prodDetailSec')[0]!==undefined){
+                section=document.getElementsByClassName('prodDetailSec')[0];
+            }
+            else{
+                section=document.getElementsByClassName('section')[0]
+            }
+            let table;
+            section.childNodes.forEach((child)=>{
+                if(child.nodeName==="TABLE"){
+                    table=child;
+                }
+            })
+            let rows=table.rows;
+            Array.from(rows).forEach((row)=>{
+                if(row.cells.length>0){
+                    let span1=document.getElementsByClassName("product-details-title")[0];
+                    let span2=document.getElementsByClassName("product-details-title")[1];
+                    let span3=document.getElementsByClassName("product-details-title")[2];
+                    if(row.cells[0].innerText!==`<br class="br">` && !row.cells[0].contains(span1)&& !row.cells[0].contains(span2)&& !row.cells[0].contains(span3)){
+                        if(row.cells[0].textContent.length>0 && row.cells[1]){
+                            console.log(row.cells[0].textContent.trim() +' '+row.cells[1].textContent.trim())
+                            description[row.cells[0].textContent.trim()]=row.cells[1].textContent.trim();
+                            if(row.cells[2]){
+                                console.log(row.cells[2].textContent.trim() +' '+row.cells[3].textContent.trim())
+                                description[row.cells[2].textContent.trim()]=row.cells[3].textContent.trim();
+                            }
+                        }
+                    }
+                }
+            })
+            return JSON.stringify(description);
+        }))
+        const shipping_and_payment=JSON.parse(await page.evaluate(()=>{
+            let shipping={shipping_to:[],excludes:[]}
+            if(document.getElementById('sh-gsp-wrap')!==null){
+                console.log('shipping and payment details div found')
+                document.getElementById('sh-gsp-wrap').childNodes.forEach(child=>{
+                    if(new String(child.innerText).includes('Shipping') && child.className==='sh-sLoc'){
+                        shipping.shipping_to=new String(child.innerText).replace('Shipping to:','').trim().split(',')
+                    }
+                    else if(child.className==='sh-sLoc' && new String(child.innerText).includes('Excludes')){
+                        shipping.shipping_to=new String(child.innerText).replace('Excludes:','').trim().split(',')
+                    }
+                })
+            }
+            return JSON.stringify(shipping);
+        }))
+        variants[variant_that_has_images.name]=variant_that_has_images.variant
+        await browser.close();
+        //variants[variant_that_has_images.name]=variant_that_has_images.images
+        res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
+        // Sending the Digimon names to Postman
+        //res.sendFile("emdad.png");
+        });
+    } catch (error) {
     console.log(error)
   }
 });
