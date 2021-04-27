@@ -62,44 +62,48 @@ app.post('/product', function (req, res) {
         //       await read_more.click()
         //   }
         //await page.waitForTimeout
-        await page.waitForSelector("#vi_main_img_fs ul li")
+        //await page.waitForSelector("#vi_main_img_fs ul li")
         const variant_that_has_images=JSON.parse(await page.evaluate(()=>{
             let name=""
             let elements=[]
             let variant_element={}
             let images=[]
-            if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
-                Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
-                    if(element.getAttribute('name')=='Color' || element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern'){
-                        elements.push(element)
-                        name=element.getAttribute('name')
+            if(document.querySelectorAll('#vi_main_img_fs ul li').length>0){
+                if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
+                    Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
+                        if(element.getAttribute('name')=='Color' ||element.getAttribute('name')=='Colors'|| element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern'){
+                            elements.push(element)
+                            name=element.getAttribute('name')
+                        }
+                    })
+                }
+                let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
+                Array.from(li_element).forEach(li=>{
+                    if(!li.querySelector('button table.img tbody tr td div img').getAttribute('src').includes('p.ebaystatic.com')){
+                        li.querySelector('button').click()
+                        if(elements.length>0){
+                            if(elements[0].querySelector('option[selected="selected"]')==null){
+                                variant_element['default']=document.getElementById("icImg").getAttribute('src')
+                            }
+                            else{
+                                if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
+                                    variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
+                                }
+                                else{
+                                    variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
+                                }
+                            }
+                        }
+                        images.push(document.getElementById("icImg").getAttribute('src'))
+                        // console.log(document.getElementById("icImg").getAttribute('src'))
+                        // console.log(variant_element.querySelector('option[selected="selected"]'))
                     }
                 })
             }
-            let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
-            Array.from(li_element).forEach(li=>{
-                if(!li.querySelector('button table.img tbody tr td div img').getAttribute('src').includes('p.ebaystatic.com')){
-                    li.querySelector('button').click()
-                    if(elements.length>0){
-                        if(elements[0].querySelector('option[selected="selected"]')==null){
-                            variant_element['default']=document.getElementById("icImg").getAttribute('src')
-                        }
-                        else{
-                            if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
-                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
-                            }
-                            else{
-                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
-                            }
-                        }
-                    }
-                    images.push(document.getElementById("icImg").getAttribute('src'))
-                    // console.log(document.getElementById("icImg").getAttribute('src'))
-                    // console.log(variant_element.querySelector('option[selected="selected"]'))
-                }
-            })
+            
             return JSON.stringify({variant:variant_element,images:images,name:name})
         }))
+        
         //Array.from()
         //
           //await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
