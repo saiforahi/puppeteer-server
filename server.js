@@ -63,7 +63,6 @@ app.post('/product', function (req, res) {
         //   }
         //await page.waitForTimeout
         await page.waitForSelector("#vi_main_img_fs ul li")
-        await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
         const variant_that_has_images=JSON.parse(await page.evaluate(()=>{
             let name=""
             let elements=[]
@@ -71,7 +70,7 @@ app.post('/product', function (req, res) {
             let images=[]
             if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
                 Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
-                    if(element.getAttribute('name')==='Color' || element.getAttribute('name')==='COLOUR'|| element.getAttribute('name')==='Pattern'){
+                    if(element.getAttribute('name')=='Color' || element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern'){
                         elements.push(element)
                         name=element.getAttribute('name')
                     }
@@ -80,7 +79,7 @@ app.post('/product', function (req, res) {
             let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
             Array.from(li_element).forEach(li=>{
                 if(!li.querySelector('button table.img tbody tr td div img').getAttribute('src').includes('p.ebaystatic.com')){
-                    li.click()
+                    li.querySelector('button').click()
                     if(elements.length>0){
                         if(elements[0].querySelector('option[selected="selected"]')==null){
                             variant_element['default']=document.getElementById("icImg").getAttribute('src')
@@ -103,7 +102,7 @@ app.post('/product', function (req, res) {
         }))
         //Array.from()
         //
-        //  await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
+          //await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
         await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
         const item_id=await page.evaluate(()=>{
             let item_id=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a").getAttribute('data-itemid')
