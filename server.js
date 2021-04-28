@@ -43,10 +43,10 @@ app.post('/product', function (req, res) {
     }).then(async function (browser) {
         const page = await browser.newPage();
         console.log(req.body.url)
-        await page.goto(req.body.url, { waitUntil: 'load', timeout: 0 });
+        await page.goto(req.body.url, { waitUntil: ['load','networkidle0'], timeout: 0 });
         page.setDefaultNavigationTimeout(0);
         await page.setViewport({ width: 1366, height: 700 });
-        await page.waitForTimeout(2000);
+        
         //await page.pdf({ path: 'hn.pdf', format: 'a4' });
         //await page.screenshot({ path: 'ss.png' });
         // const digimonNames = await page.$('#itemTitle', function (tag) {
@@ -63,7 +63,7 @@ app.post('/product', function (req, res) {
         //   }
         //await page.waitForTimeout
         //await page.waitForSelector("#vi_main_img_fs ul li")
-        const variant_that_has_images=JSON.parse(await page.evaluate(()=>{
+        const variant_that_has_images=JSON.parse(await page.evaluate(async()=>{
             let name=""
             let elements=[]
             let variant_element={}
@@ -78,27 +78,40 @@ app.post('/product', function (req, res) {
                     })
                 }
                 let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
-                Array.from(li_element).forEach(li=>{
-                    if(!li.querySelector('button table.img tbody tr td div img').getAttribute('src').includes('p.ebaystatic.com')){
-                        li.querySelector('button').click()
-                        if(elements.length>0){
-                            if(elements[0].querySelector('option[selected="selected"]')==null){
-                                variant_element['default']=document.getElementById("icImg").getAttribute('src')
+                let offset=0
+                for(let index=0;index<li_element.length;index++){
+                    li_element[index].click()
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    if(elements.length>0){
+                        if(elements[0].querySelector('option[selected="selected"]')!=null){
+                            if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
+                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
                             }
                             else{
-                                if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
-                                    variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
-                                }
-                                else{
-                                    variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
-                                }
+                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
                             }
                         }
-                        images.push(document.getElementById("icImg").getAttribute('src'))
-                        // console.log(document.getElementById("icImg").getAttribute('src'))
-                        // console.log(variant_element.querySelector('option[selected="selected"]'))
+                        
                     }
-                })
+                    images.push(document.getElementById("icImg").getAttribute('src'))
+                }
+                // Array.from(li_element).forEach(li=>{
+                //     li.click()
+                //     if(elements.length>0){
+                //         if(elements[0].querySelector('option[selected="selected"]')!=null){
+                //             if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
+                //                 variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
+                //             }
+                //             else{
+                //                 variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
+                //             }
+                //         }
+                        
+                //     }
+                //     images.push(document.getElementById("icImg").getAttribute('src'))
+                //     // console.log(document.getElementById("icImg").getAttribute('src'))
+                //     // console.log(variant_element.querySelector('option[selected="selected"]'))
+                // })
             }
             
             return JSON.stringify({variant:variant_element,images:images,name:name})
@@ -106,7 +119,7 @@ app.post('/product', function (req, res) {
         
         //Array.from()
         //
-          //await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
+        //await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
         await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
         const item_id=await page.evaluate(()=>{
             let item_id=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a").getAttribute('data-itemid')
