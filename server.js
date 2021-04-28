@@ -71,7 +71,7 @@ app.post('/product', function (req, res) {
             if(document.querySelectorAll('#vi_main_img_fs ul li').length>0){
                 if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
                     Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
-                        if(element.getAttribute('name')=='Color' ||element.getAttribute('name')=='Colors'|| element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern'){
+                        if(element.getAttribute('name')=='Color' ||element.getAttribute('name')=='Colors'|| element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern' || element.getAttribute('name')=='Theme'){
                             elements.push(element)
                             name=element.getAttribute('name')
                         }
@@ -119,7 +119,7 @@ app.post('/product', function (req, res) {
         
         //Array.from()
         //
-        //await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
+        await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
         await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
         const item_id=await page.evaluate(()=>{
             let item_id=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a").getAttribute('data-itemid')
