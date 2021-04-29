@@ -83,12 +83,21 @@ app.post('/product', function (req, res) {
                     li_element[index].click()
                     await new Promise((resolve) => setTimeout(resolve, 500));
                     if(elements.length>0){
+                        let textContent
+                        if(document.getElementById('mm-saleDscPrc')){
+                            textContent=document.getElementById('mm-saleDscPrc').textContent
+                        }
+                        else if(document.getElementById("prcIsum")){
+                            textContent=document.getElementById("prcIsum").textContent;
+                        }
+                        let price=textContent.split(" ");
+                        price[1]=price[1].replace('$'," ").trim();
                         if(elements[0].querySelector('option[selected="selected"]')!=null){
                             if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
-                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
+                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]={price:price[1],image:variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')}
                             }
                             else{
-                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
+                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]={price:price[1],image:document.getElementById('icImg').getAttribute('src')}
                             }
                         }
                         
@@ -145,7 +154,10 @@ app.post('/product', function (req, res) {
         const main_image = JSON.parse(await page.evaluate(()=>{
             return JSON.stringify(document.getElementById('icImg').getAttribute('src'));
         }))
-        const current_price=JSON.parse(await page.evaluate(()=>{
+        const current_price=JSON.parse(await page.evaluate(async()=>{
+            let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
+            li_element[0].click()
+            await new Promise((resolve) => setTimeout(resolve, 100));
             let textContent
             if(document.getElementById('mm-saleDscPrc')){
                 textContent=document.getElementById('mm-saleDscPrc').textContent
@@ -164,7 +176,7 @@ app.post('/product', function (req, res) {
             Array.from(variant_elements).forEach(element=>{
                 let options=[];
                 element.childNodes.forEach(child=>{
-                    if(child.innerText!="- Select -" && !child.innerText.includes('[out of stock]')){
+                    if(child.innerText!="- Select -"){
                         options.push(child.innerText)
                         console.log(child)
                     }
@@ -271,4 +283,18 @@ app.use(function (req, res, next) {
   // Pass to next layer of middleware
   next();
 });
+
+function price_info(){
+    let textContent
+    if(document.getElementById('mm-saleDscPrc')){
+        textContent=document.getElementById('mm-saleDscPrc').textContent
+    }
+    else if(document.getElementById("prcIsum")){
+        textContent=document.getElementById("prcIsum").textContent;
+    }
+    let price=textContent.split(" ");
+    price[1]=price[1].replace('$'," ").trim();
+    let currency=price[0]+" $";
+    return JSON.stringify({price:price[1],currency:currency})
+}
 
