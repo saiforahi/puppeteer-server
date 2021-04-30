@@ -81,7 +81,7 @@ app.post('/product', function (req, res) {
                 let offset=0
                 for(let index=0;index<li_element.length;index++){
                     li_element[index].click()
-                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    await new Promise((resolve) => setTimeout(resolve, 250));
                     if(elements.length>0){
                         let textContent
                         if(document.getElementById('mm-saleDscPrc')){
