@@ -31,104 +31,75 @@ app.get('/', function (req,res) {
   res.sendFile(path + "index.html");
 });
 
-app.post('/product', function (req, res) {
+app.post('/product',async function (req, res) {
   // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
   try {
-    puppeteer.launch({
-        headless: true,
-        timeout: 0,
-        ignoreHTTPSErrors: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process']
-    }).then(async function (browser) {
-        const page = await browser.newPage();
+        const browser = await puppeteer.launch({
+            headless: false,
+            timeout: 0,
+            ignoreHTTPSErrors: true,
+            args: [
+                '--no-sandbox', 
+                '--disable-setuid-sandbox', 
+                '--disable-web-security', 
+                '--disable-features=IsolateOrigins,site-per-process',
+                '--disable-dev-shm-usage'
+            ]
+        });
+        let browser_pages = await browser.pages()
+        const page = browser_pages[0];
         console.log(req.body.url)
+        await page.setViewport({ width: 1366, height: 700 });
         await page.goto(req.body.url, { waitUntil: ['load','networkidle0'], timeout: 0 });
         page.setDefaultNavigationTimeout(0);
-        await page.setViewport({ width: 1366, height: 700 });
-        
-        //await page.pdf({ path: 'hn.pdf', format: 'a4' });
-        //await page.screenshot({ path: 'ss.png' });
-        // const digimonNames = await page.$('#itemTitle', function (tag) {
-        //   console.log(tag)
-        //   return tag.innerText
-        //   // Mapping each Digimon name to an array
-        //   // return tag.children.map(function (digimon) {
-        //   //   return digimon.innerText;
-        //   // });
-        // });
-        //   const [read_more]=await page.$eval('#readFull a')
-        //   if(read_more){
-        //       await read_more.click()
-        //   }
-        //await page.waitForTimeout
-        //await page.waitForSelector("#vi_main_img_fs ul li")
-        const variant_that_has_images=JSON.parse(await page.evaluate(async()=>{
-            let name=""
-            let elements=[]
-            let variant_element={}
-            let images=[]
-            if(document.querySelectorAll('#vi_main_img_fs ul li').length>0){
-                if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
-                    Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
-                        if(element.getAttribute('name')=='Color' ||element.getAttribute('name')=='Colors'|| element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern' || element.getAttribute('name')=='Theme'){
-                            elements.push(element)
-                            name=element.getAttribute('name')
+        let variant_that_has_images=await page.evaluate(async()=>{
+            return new Promise(async(res,rej)=>{
+                let name=""
+                let elements=[]
+                let variants =[]
+                if(document.querySelectorAll('#vi_main_img_fs ul li').length>0){
+                    if (document.querySelectorAll("select[id*='msku-sel']").length>0) {
+                        Array.from(document.querySelectorAll("select[id*='msku-sel']")).forEach(element=>{
+                            if(element.getAttribute('name')=='Color' ||element.getAttribute('name')=='Colors'|| element.getAttribute('name')=='Colour'|| element.getAttribute('name')=='Pattern' || element.getAttribute('name')=='Theme'){
+                                elements.push(element)
+                                name=element.getAttribute('name')
+                            }
+                        })
+                    }
+                    Array.from(elements[0].querySelectorAll('option')).forEach(option =>{
+                        if(option.getAttribute('value') != '-1'){
+                            variants.push({value:option.getAttribute('value'),name:option.textContent})
                         }
                     })
                 }
-                let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
-                let offset=0
-                for(let index=0;index<li_element.length;index++){
-                    li_element[index].click()
-                    await new Promise((resolve) => setTimeout(resolve, 250));
-                    if(elements.length>0){
-                        let textContent
-                        if(document.getElementById('mm-saleDscPrc')){
-                            textContent=document.getElementById('mm-saleDscPrc').textContent
-                        }
-                        else if(document.getElementById("prcIsum")){
-                            textContent=document.getElementById("prcIsum").textContent;
-                        }
-                        let price=textContent.split(" ");
-                        price[1]=price[1].replace('$'," ").trim();
-                        if(elements[0].querySelector('option[selected="selected"]')!=null){
-                            if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
-                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]={price:price[1],image:variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')}
-                            }
-                            else{
-                                variant_element[elements[0].querySelector('option[selected="selected"]').innerText]={price:price[1],image:document.getElementById('icImg').getAttribute('src')}
-                            }
-                        }
-                        
-                    }
-                    images.push(document.getElementById("icImg").getAttribute('src'))
-                }
-                // Array.from(li_element).forEach(li=>{
-                //     li.click()
-                //     if(elements.length>0){
-                //         if(elements[0].querySelector('option[selected="selected"]')!=null){
-                //             if(variant_element[elements[0].querySelector('option[selected="selected"]').innerText]){
-                //                 variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=variant_element[elements[0].querySelector('option[selected="selected"]').innerText]+','+document.getElementById('icImg').getAttribute('src')
-                //             }
-                //             else{
-                //                 variant_element[elements[0].querySelector('option[selected="selected"]').innerText]=document.getElementById('icImg').getAttribute('src')
-                //             }
-                //         }
-                        
-                //     }
-                //     images.push(document.getElementById("icImg").getAttribute('src'))
-                //     // console.log(document.getElementById("icImg").getAttribute('src'))
-                //     // console.log(variant_element.querySelector('option[selected="selected"]'))
-                // })
+                res({variants:variants,name:name})
+            })
+        })
+        //console.log('variant that has images',variant_that_has_images.variant)
+        await page.waitForTimeout(3000)
+        if(await page.$("select[id*='msku-sel'][name='Colors']") || await page.$("select[id*='msku-sel'][name='Colour']") || await page.$("select[id*='msku-sel'][name='Color']") || await page.$("select[id*='msku-sel'][name='Pattern']")){
+            const options = await page.$$("select[id*='msku-sel'][name='Colors'] option")
+            //console.log('color variants found ------- ', variant_that_has_images[variant])
+            // Object.entries(variant_that_has_images.variant).map(item => {
+            //     console.log(item)
+            // })
+            console.log(Object.keys(variant_that_has_images.variants))
+            let temp_obj ={}
+            for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
+               await page.select("select[id*='msku-sel'][name='Colors']",variant_that_has_images.variants[index].value)
+               let price
+               if(await page.$('#mm-saleDscPrc')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               else if(await page.$('#prcIsum')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               await page.waitForSelector('#icImg')
+               let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
+               temp_obj[variant_that_has_images.variants[index].name] = {price:price,image:image}
             }
-            
-            return JSON.stringify({variant:variant_element,images:images,name:name})
-        }))
-        
-        //Array.from()
-        //
-        await page.screenshot({ path: 'clicks_for_of.png',fullPage: true })
+            variant_that_has_images.variants=temp_obj
+        }
         await page.waitForSelector("div.social-widget.vi-share-widget-tc div.sw a")
         const item_id=await page.evaluate(()=>{
             let item_id=document.querySelector("div.social-widget.vi-share-widget-tc div.sw a").getAttribute('data-itemid')
@@ -154,44 +125,42 @@ app.post('/product', function (req, res) {
         const main_image = JSON.parse(await page.evaluate(()=>{
             return JSON.stringify(document.getElementById('icImg').getAttribute('src'));
         }))
-        const current_price=JSON.parse(await page.evaluate(async()=>{
-            let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
-            li_element[0].click()
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            let textContent
-            if(document.getElementById('mm-saleDscPrc')){
-                textContent=document.getElementById('mm-saleDscPrc').textContent
-            }
-            else if(document.getElementById("prcIsum")){
-                textContent=document.getElementById("prcIsum").textContent;
-            }
-            let price=textContent.split(" ");
-            price[1]=price[1].replace('$'," ").trim();
-            let currency=price[0]+" $";
-            return JSON.stringify({price:price[1],currency:currency})
-        }))
-        const variants=JSON.parse(await page.evaluate(()=>{
-            let variants={};
-            let variant_elements=document.querySelectorAll("select[id*='msku-sel']")
-            Array.from(variant_elements).forEach(element=>{
-                let options=[];
-                element.childNodes.forEach(child=>{
-                    if(child.innerText!="- Select -"){
-                        options.push(child.innerText)
-                        console.log(child)
-                    }
-                })
-                variants[element.getAttribute('name')]=options;
-                // if(element.getAttribute('name')==="Color" || element.getAttribute('name')==="COLOUR" || element.getAttribute('name')==="Pattern"){
-                    
-                //     variants[element.getAttribute('name')]=variant_that_has_images;
-                // }
-                // else{
-                //     variants[element.getAttribute('name')]=options;
-                // }
+        const current_price=await page.evaluate(async()=>{
+            return new Promise((res,rej)=>{
+                let li_element=document.querySelectorAll('#vi_main_img_fs ul li')
+                setTimeout(()=>{
+                    li_element[0].click()
+                },3000)
+                let textContent
+                if(document.getElementById('mm-saleDscPrc')){
+                    textContent=document.getElementById('mm-saleDscPrc').textContent
+                }
+                else if(document.getElementById("prcIsum")){
+                    textContent=document.getElementById("prcIsum").textContent;
+                }
+                let price=textContent.split(" ");
+                price[1]=price[1].replace('$'," ").trim();
+                let currency=price[0]+" $";
+                res({price:price[1],currency:currency})
             })
-            return JSON.stringify(variants);
-        }))
+        })
+        const variants=await page.evaluate(()=>{
+            return new Promise((res,rej)=>{
+                let variants={};
+                let variant_elements=document.querySelectorAll("select[id*='msku-sel']")
+                Array.from(variant_elements).forEach(element=>{
+                    let options=[];
+                    element.childNodes.forEach(child=>{
+                        if(child.innerText!="- Select -"){
+                            options.push(child.innerText)
+                            console.log(child)
+                        }
+                    })
+                    variants[element.getAttribute('name')]=options;
+                })
+                res(variants)
+            })
+        })
       
         const details=JSON.parse(await page.evaluate(()=>{
             let details={};
@@ -253,14 +222,19 @@ app.post('/product', function (req, res) {
             return JSON.stringify(shipping);
         }))
         if(variant_that_has_images.name.length>0){
-            variants[variant_that_has_images.name]=variant_that_has_images.variant
+            variants[variant_that_has_images.name]=variant_that_has_images.variants
         }
+
+        let pages = await browser.pages();
+        await Promise.all(pages.map(page =>page.close()));
         await browser.close();
+
         //variants[variant_that_has_images.name]=variant_that_has_images.images
+        //res.send(variant_that_has_images)
         res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
         // Sending the Digimon names to Postman
         //res.sendFile("emdad.png");
-        });
+    
     } catch (error) {
     console.log(error)
   }
