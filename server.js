@@ -8,6 +8,7 @@ const { json } = require('body-parser');
 var forms = multer();
 const path = __dirname + '/app/views/';
 const app = express();
+const aliexpress = require('./scrappers/aliexpress')
 app.use(express.static(path));
 
 var corsOptions = {
@@ -77,16 +78,69 @@ app.post('/product',async function (req, res) {
         })
         //console.log('variant that has images',variant_that_has_images.variant)
         await page.waitForTimeout(3000)
-        if(await page.$("select[id*='msku-sel'][name='Colors']") || await page.$("select[id*='msku-sel'][name='Colour']") || await page.$("select[id*='msku-sel'][name='Color']") || await page.$("select[id*='msku-sel'][name='Pattern']")){
+        if(await page.$("select[id*='msku-sel'][name='Colors']")){
             const options = await page.$$("select[id*='msku-sel'][name='Colors'] option")
-            //console.log('color variants found ------- ', variant_that_has_images[variant])
-            // Object.entries(variant_that_has_images.variant).map(item => {
-            //     console.log(item)
-            // })
             console.log(Object.keys(variant_that_has_images.variants))
             let temp_obj ={}
             for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
                await page.select("select[id*='msku-sel'][name='Colors']",variant_that_has_images.variants[index].value)
+               let price
+               if(await page.$('#mm-saleDscPrc')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               else if(await page.$('#prcIsum')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               await page.waitForSelector('#icImg')
+               let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
+               temp_obj[variant_that_has_images.variants[index].name] = {price:price,image:image}
+            }
+            variant_that_has_images.variants=temp_obj
+        }
+        else if(await page.$("select[id*='msku-sel'][name='Colour']")){
+            const options = await page.$$("select[id*='msku-sel'][name='Colour'] option")
+            console.log(Object.keys(variant_that_has_images.variants))
+            let temp_obj ={}
+            for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
+               await page.select("select[id*='msku-sel'][name='Colour']",variant_that_has_images.variants[index].value)
+               let price
+               if(await page.$('#mm-saleDscPrc')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               else if(await page.$('#prcIsum')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               await page.waitForSelector('#icImg')
+               let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
+               temp_obj[variant_that_has_images.variants[index].name] = {price:price,image:image}
+            }
+            variant_that_has_images.variants=temp_obj
+        }
+        else if(await page.$("select[id*='msku-sel'][name='Color']")){
+            const options = await page.$$("select[id*='msku-sel'][name='Color'] option")
+            console.log(Object.keys(variant_that_has_images.variants))
+            let temp_obj ={}
+            for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
+               await page.select("select[id*='msku-sel'][name='Color']",variant_that_has_images.variants[index].value)
+               let price
+               if(await page.$('#mm-saleDscPrc')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               else if(await page.$('#prcIsum')){
+                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+               }
+               await page.waitForSelector('#icImg')
+               let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
+               temp_obj[variant_that_has_images.variants[index].name] = {price:price,image:image}
+            }
+            variant_that_has_images.variants=temp_obj
+        }
+        else if(await page.$("select[id*='msku-sel'][name='Pattern']")){
+            const options = await page.$$("select[id*='msku-sel'][name='Pattern'] option")
+            console.log(Object.keys(variant_that_has_images.variants))
+            let temp_obj ={}
+            for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
+               await page.select("select[id*='msku-sel'][name='Pattern']",variant_that_has_images.variants[index].value)
                let price
                if(await page.$('#mm-saleDscPrc')){
                 price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
@@ -229,16 +283,19 @@ app.post('/product',async function (req, res) {
         await Promise.all(pages.map(page =>page.close()));
         await browser.close();
 
-        //variants[variant_that_has_images.name]=variant_that_has_images.images
-        //res.send(variant_that_has_images)
         res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
-        // Sending the Digimon names to Postman
-        //res.sendFile("emdad.png");
     
     } catch (error) {
     console.log(error)
   }
 });
+
+app.post('/aliexpress/product/import',function (req,res){
+    //const result = aliexpress(req.body.url)
+    Promise.resolve(aliexpress(req.body.url)).then((result)=>{res.send(result)})
+    //res.send(result)
+})
+
 app.use(function (req, res, next) {
 
   // Website you wish to allow to connect
