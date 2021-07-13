@@ -37,7 +37,7 @@ app.post('/product',async function (req, res) {
   // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
   try {
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             timeout: 0,
             ignoreHTTPSErrors: true,
             args: [
