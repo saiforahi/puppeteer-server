@@ -9,6 +9,7 @@ var forms = multer();
 const path = __dirname + '/app/views/';
 const app = express();
 const aliexpress = require('./scrappers/aliexpress')
+const walmart = require('./scrappers/walmart')
 app.use(express.static(path));
 
 var corsOptions = {
@@ -36,7 +37,7 @@ app.post('/product',async function (req, res) {
   // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
   try {
         const browser = await puppeteer.launch({
-            headless: true,
+            headless: false,
             timeout: 0,
             ignoreHTTPSErrors: true,
             args: [
@@ -79,7 +80,6 @@ app.post('/product',async function (req, res) {
         //console.log('variant that has images',variant_that_has_images.variant)
         await page.waitForTimeout(3000)
         if(await page.$("select[id*='msku-sel'][name='Colors']")){
-            const options = await page.$$("select[id*='msku-sel'][name='Colors'] option")
             console.log(Object.keys(variant_that_has_images.variants))
             let temp_obj ={}
             for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
@@ -89,7 +89,7 @@ app.post('/product',async function (req, res) {
                 price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
                }
                else if(await page.$('#prcIsum')){
-                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+                price = await page.$eval('#prcIsum',e=>e.textContent.replace('US $','').trim())
                }
                await page.waitForSelector('#icImg')
                let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
@@ -98,7 +98,6 @@ app.post('/product',async function (req, res) {
             variant_that_has_images.variants=temp_obj
         }
         else if(await page.$("select[id*='msku-sel'][name='Colour']")){
-            const options = await page.$$("select[id*='msku-sel'][name='Colour'] option")
             console.log(Object.keys(variant_that_has_images.variants))
             let temp_obj ={}
             for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
@@ -108,7 +107,7 @@ app.post('/product',async function (req, res) {
                 price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
                }
                else if(await page.$('#prcIsum')){
-                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+                price = await page.$eval('#prcIsum',e=>e.textContent.replace('US $','').trim())
                }
                await page.waitForSelector('#icImg')
                let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
@@ -117,7 +116,6 @@ app.post('/product',async function (req, res) {
             variant_that_has_images.variants=temp_obj
         }
         else if(await page.$("select[id*='msku-sel'][name='Color']")){
-            const options = await page.$$("select[id*='msku-sel'][name='Color'] option")
             console.log(Object.keys(variant_that_has_images.variants))
             let temp_obj ={}
             for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
@@ -127,7 +125,7 @@ app.post('/product',async function (req, res) {
                 price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
                }
                else if(await page.$('#prcIsum')){
-                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+                price = await page.$eval('#prcIsum',e=>e.textContent.replace('US $','').trim())
                }
                await page.waitForSelector('#icImg')
                let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
@@ -136,7 +134,6 @@ app.post('/product',async function (req, res) {
             variant_that_has_images.variants=temp_obj
         }
         else if(await page.$("select[id*='msku-sel'][name='Pattern']")){
-            const options = await page.$$("select[id*='msku-sel'][name='Pattern'] option")
             console.log(Object.keys(variant_that_has_images.variants))
             let temp_obj ={}
             for(let index = 0 ; index<variant_that_has_images.variants.length;index++){
@@ -146,7 +143,7 @@ app.post('/product',async function (req, res) {
                 price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
                }
                else if(await page.$('#prcIsum')){
-                price = await page.$eval('#mm-saleDscPrc',e=>e.textContent.replace('US $','').trim())
+                price = await page.$eval('#prcIsum',e=>e.textContent.replace('US $','').trim())
                }
                await page.waitForSelector('#icImg')
                let image = await page.$eval('#icImg',e=>e.getAttribute('src'))
@@ -282,7 +279,6 @@ app.post('/product',async function (req, res) {
         let pages = await browser.pages();
         await Promise.all(pages.map(page =>page.close()));
         await browser.close();
-
         res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
     
     } catch (error) {
@@ -294,6 +290,10 @@ app.post('/aliexpress/product/import',function (req,res){
     //const result = aliexpress(req.body.url)
     Promise.resolve(aliexpress(req.body.url)).then((result)=>{res.send(result)})
     //res.send(result)
+})
+
+app.post('/walmart/product/import',function(req,res){
+    Promise.resolve(walmart(req.body.url)).then((result)=>{res.send(result)})
 })
 
 app.use(function (req, res, next) {
