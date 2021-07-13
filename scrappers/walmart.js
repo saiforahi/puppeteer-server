@@ -29,7 +29,7 @@ const walmart = async (url) => {
     try{
         var item_id=extract_item_id(url)
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             timeout: 0,
             ignoreHTTPSErrors: true,
             args: [
