@@ -216,7 +216,20 @@ const aliexpress = async (url) => {
         let pages = await browser.pages();
         await Promise.all(pages.map(page =>page.close()));
         await browser.close();
-        return {market:'aliexpress',item_id:item_id,url:url,title:title,seller:seller,variants:variants,current_price:parseFloat(price.value),currency:price.currency,default_image:default_image,images:images,variants:variants,specifications:specifications,description:specifications,"shipping_and_payment":{"shipping_to":[],"excludes":[]}}
+        return {
+            market:'aliexpress',
+            item_id:item_id,
+            url:url,
+            title:title,
+            seller:seller,
+            variants:variants,
+            current_price:parseFloat(price.value),
+            currency:price.currency,
+            default_image:default_image,
+            images:images,
+            specifications:specifications,
+            description:specifications,
+            "shipping_and_payment":{"shipping_to":[],"excludes":[]}}
     }
     catch(error){
         console.log(error)

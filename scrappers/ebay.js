@@ -1,42 +1,8 @@
-const set_data=require('./scripts/ebay-scraper')
-const express = require("express")
 const puppeteer = require('puppeteer');
-const bodyParser = require("body-parser");
-const cors = require("cors");
-var multer = require('multer');
-const { json } = require('body-parser');
-var forms = multer();
-const path = __dirname + '/app/views/';
-const app = express();
-const aliexpress = require('./scrappers/aliexpress')
-const walmart = require('./scrappers/walmart')
-const amazon = require('./scrappers/amazon')
-app.use(express.static(path));
-
-var corsOptions = {
-  origin: "http://localhost:3000"
-};
 
 
-app.use(cors(corsOptions));
-app.use(express.json());
-//app.use(forms.array());
-app.use(express.urlencoded({ extended: true }));
-
-// set port, listen for requests
-const PORT = process.env.PORT || 8080;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
-});
-
-app.get('/', function (req,res) {
-  res.sendFile(path + "index.html");
-});
-
-app.post('/product',async function (req, res) {
-  // Launching the Puppeteer controlled headless browser and navigate to the Digimon website
-  try {
+const ebay = async (url) => {
+    try {
         const browser = await puppeteer.launch({
             headless: true,
             timeout: 0,
@@ -51,9 +17,9 @@ app.post('/product',async function (req, res) {
         });
         let browser_pages = await browser.pages()
         const page = browser_pages[0];
-        console.log(req.body.url)
+        console.log(url)
         await page.setViewport({ width: 1366, height: 700 });
-        await page.goto(req.body.url, { waitUntil: ['load','networkidle0'], timeout: 0 });
+        await page.goto(url, { waitUntil: ['load','networkidle0'], timeout: 0 });
         page.setDefaultNavigationTimeout(0);
         let variant_that_has_images=await page.evaluate(async()=>{
             return new Promise(async(res,rej)=>{
@@ -280,56 +246,13 @@ app.post('/product',async function (req, res) {
         let pages = await browser.pages();
         await Promise.all(pages.map(page =>page.close()));
         await browser.close();
-        res.send({market:'ebay',item_id:item_id,url:req.body.url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
+        res.send({market:'ebay',item_id:item_id,url:url,title:title.replace("Details about  "," ").trim(),seller:seller,variants:variants,current_price:current_price.price,currency:current_price.currency,default_image:main_image,images:variant_that_has_images.images,details:details,description:description,specification:description,shipping_and_payment:shipping_and_payment})
     
     } catch (error) {
     console.log(error)
   }
-});
-
-app.post('/aliexpress/product/import',function (req,res){
-    //const result = aliexpress(req.body.url)
-    Promise.resolve(aliexpress(req.body.url)).then((result)=>{res.send(result)})
-    //res.send(result)
-})
-
-app.post('/walmart/product/import',function(req,res){
-    Promise.resolve(walmart(req.body.url)).then((result)=>{res.send(result)})
-})
-
-app.post('/amazon/product/import',function(req,res){
-    Promise.resolve(amazon(req.body.url)).then((result)=>{res.send(result)})
-})
-app.use(function (req, res, next) {
-
-  // Website you wish to allow to connect
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-
-  // Request methods you wish to allow
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-
-  // Request headers you wish to allow
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-  // Set to true if you need the website to include cookies in the requests sent
-  // to the API (e.g. in case you use sessions)
-  res.setHeader('Access-Control-Allow-Credentials', true);
-
-  // Pass to next layer of middleware
-  next();
-});
-
-function price_info(){
-    let textContent
-    if(document.getElementById('mm-saleDscPrc')){
-        textContent=document.getElementById('mm-saleDscPrc').textContent
-    }
-    else if(document.getElementById("prcIsum")){
-        textContent=document.getElementById("prcIsum").textContent;
-    }
-    let price=textContent.split(" ");
-    price[1]=price[1].replace('$'," ").trim();
-    let currency=price[0]+" $";
-    return JSON.stringify({price:price[1],currency:currency})
+    return "error"
 }
 
+
+module.exports = ebay
