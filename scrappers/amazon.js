@@ -90,6 +90,10 @@ const amazon = async (url) => {
                     })
                     images.push(item_image)
                     let price = await page.$eval('#priceblock_ourprice',el=>el.textContent.replace('$','').trim())
+                    if(price.includes('-')){
+                        price=price.split('-')[1].replace('$','').trim()
+
+                    }
                     variants['Color'][color_name] = {image:item_image,price:price}
                 }
             }
