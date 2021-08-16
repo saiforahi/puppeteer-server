@@ -38,7 +38,13 @@ const amazon = async (url) => {
         var price = await page.evaluate(()=>{
             return new Promise((res,rej)=>{
                 let price = document.getElementById('priceblock_ourprice').textContent.replace('$','').trim()
-                res(price)
+                if(price.includes('-')){
+                    let price_parts=price.split('-')
+                    res(price_parts[1].replace('$','').trim())
+                }
+                else{
+                    res(price)
+                }
             })
         })
         
