@@ -3,12 +3,28 @@ function extract_item_id(url){
     let item_id = url.split('/')[5]
     return item_id
 }
-
+async function variant_price(page){
+    let color_variants = await page.$$('#variation_color_name > ul > li')
+    let size_variants = await page.$$('select[name="dropdown_selected_size_name"] option')
+    let prices=[]
+    for(let index1 = 0 ; index1 < size_variants.length ; index1++){
+        await size_variants[index1].click()
+        for(let index2 = 0 ; index2 < color_variants.length ; index2++){
+            await color_variants[index2].click()
+            let price = await page.$eval('#priceblock_ourprice',el=>el.textContent.replace('$','').trim())
+            if(price.includes('-')){
+                price=price.split('-')[1].replace('$','').trim()
+                prices.push(price)
+            }
+        }
+    }
+    console.log(prices)
+}
 const amazon = async (url) => {
     try{
         var item_id=extract_item_id(url)
         const browser = await puppeteer.launch({
-            headless: true,
+            headless: false,
             timeout: 0,
             ignoreHTTPSErrors: true,
             args: [
@@ -73,9 +89,10 @@ const amazon = async (url) => {
                 variants['Color']={}
                 for(let index=0;index<color_variants_div.length;index++){
                     await color_variants_div[index].click()
-                    await page.waitForSelector('li.image.item.itemNo0.maintain-height.selected div.imgTagWrapper img', {
-                        visible: true,timeout: 0
-                    }).then(()=>{})
+                    // await page.waitForSelector('li.image.item.itemNo0.maintain-height.selected div.imgTagWrapper img', {
+                    //     visible: true,timeout: 0
+                    // }).then(()=>{})
+                    await page.waitForResponse(response => response.status() === 200)
                     //let image = await page.$eval('#imgTagWrapperId img',el=>el.getAttribute('src').trim())
                     let color_name = await page.$eval('#variation_color_name > div.a-row span.selection',el=>el.textContent.trim())
                     let item_image = await page.evaluate(()=>{
@@ -92,14 +109,62 @@ const amazon = async (url) => {
                     let price = await page.$eval('#priceblock_ourprice',el=>el.textContent.replace('$','').trim())
                     if(price.includes('-')){
                         price=price.split('-')[1].replace('$','').trim()
-
                     }
                     variants['Color'][color_name] = {image:item_image,price:price}
+                    if(await page.$('#altImages')){
+                        let sub_images=await page.$$('#altImages ul li[class="a-spacing-small item imageThumbnail a-declarative"]')
+                        console.log('sub images',sub_images.length)
+                        for(let index=1;index < sub_images.length ; index++){
+                            //await sub_images[index].click()
+                            await page.evaluate((index)=>{
+                                //sub_images[index].click()
+                                document.querySelectorAll('#altImages ul li[class="a-spacing-small item imageThumbnail a-declarative"]')[index].click()
+                            },index)
+                            //await page.waitForResponse(response => response.status() === 200)
+                            await page.waitForSelector('li.image.item.itemNo0.maintain-height.selected div.imgTagWrapper img', {
+                                visible: true,timeout: 0
+                            }).then(()=>{})
+                            let temp_image = await page.evaluate(()=>{
+                                return new Promise((res,rej)=>{
+                                    if(document.querySelector('li.image.item.itemNo0.maintain-height.selected div.imgTagWrapper img')){
+                                        res(document.querySelector('li.image.item.itemNo0.maintain-height.selected div.imgTagWrapper img').getAttribute('data-old-hires').trim())
+                                    }
+                                    else{
+                                        rej()
+                                    }
+                                })
+                            })
+                            images.push(temp_image)
+                        }
+                    }
                 }
             }
         }
         
-        
+        // let color_variants = await page.$$('#variation_color_name > ul > li')
+        // let size_variants = await page.$$('select[name="dropdown_selected_size_name"] option')
+        // console.log(size_variants.length)
+        // let prices=[]
+        // for(let index1 = 0 ; index1 < color_variants.length ; index1++){
+        //     //await page.click('dropdown_selected_size_name')
+        //     await color_variants[index1].click()
+        //     //await page.click('#size_name_'+index1)
+        //     for(let index2 = 0 ; index2 < size_variants.length ; index2++){
+        //         await page.select('select#native_dropdown_selected_size_name',await page.evaluate(el => el.getAttribute("value"), size_variants[index2]))
+        //         await page.waitForResponse(response => response.status() === 200)
+        //         if(await page.$('#priceblock_ourprice')){
+        //             let price = await page.$eval('#priceblock_ourprice',el=>el.textContent.replace('$','').trim())
+        //             if(price.includes('-')){
+        //                 price=price.split('-')[1].replace('$','').trim()
+        //                 prices.push(price)
+        //             }
+        //         }
+        //         else{
+        //             prices.push(0)
+        //         }
+        //     }
+        // }
+        // console.log(prices)
         // var description = await page.evaluate(()=>{
         //     return new Promise((res,rej)=>{
         //         res(document.getElementById('productDescription').querySelector('p').textContent.trim())
